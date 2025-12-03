@@ -1,0 +1,13 @@
+(lang dune 3.0)
+
+(name zed-ona-sync)
+
+(generate_opam_files true)
+
+(package
+ (name zed-ona-sync)
+ (synopsis "A tool for syncing Zed editor settings")
+ (depends
+  (ocaml (>= 5.0))
+  (yojson (>= 2.0))))
+
