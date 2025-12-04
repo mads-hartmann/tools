@@ -1,5 +1,5 @@
 (executable
  (name main)
  (public_name zed-ona-sync)
- (libraries yojson))
+ (libraries yojson unix))
 
