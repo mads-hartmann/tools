@@ -1,5 +1,5 @@
 (executable
  (name main)
  (public_name ona-sync-zed-ssh-connections)
- (libraries yojson unix))
-
+ (package ona-sync-zed-ssh-connections)
+ (libraries ona yojson unix))

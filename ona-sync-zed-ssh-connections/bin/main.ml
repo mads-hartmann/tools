@@ -1,96 +1,13 @@
-(** zed-ona-sync: Syncs Gitpod environments to Zed's ssh_connections config *)
+(** ona-sync-zed-ssh-connections: Syncs Ona environments to Zed's ssh_connections config *)
 
-let gitpod_cli = "/usr/local/bin/gitpod"
 let zed_config_path =
   Filename.concat (Sys.getenv "HOME") ".config/zed/settings.json"
 
-(** Represents a Gitpod environment *)
-type gitpod_env = {
-  id : string;
-  checkout_location : string;
-  nickname : string;
-}
-
-(** Run a command and return its stdout *)
-let run_command cmd args =
-  let cmd_str = String.concat " " (cmd :: args) in
-  let ic = Unix.open_process_in cmd_str in
-  let buf = Buffer.create 256 in
-  (try
-     while true do
-       Buffer.add_channel buf ic 1
-     done
-   with End_of_file -> ());
-  let _ = Unix.close_process_in ic in
-  Buffer.contents buf
-
-(** Extract checkout location from gitpod environment JSON *)
-let extract_checkout_location json =
-  let open Yojson.Basic.Util in
-  try
-    json
-    |> member "spec"
-    |> member "content"
-    |> member "initializer"
-    |> member "specs"
-    |> to_list
-    |> List.hd
-    |> member "git"
-    |> member "checkoutLocation"
-    |> to_string
-  with _ -> "workspace"
-
-(** Extract nickname from gitpod environment JSON.
-    Uses metadata.name if set, otherwise falls back to status.content.git.branch *)
-let extract_nickname json =
-  let open Yojson.Basic.Util in
-  let metadata_name =
-    try
-      match json |> member "metadata" |> member "name" with
-      | `Null -> None
-      | `String "" -> None
-      | `String s -> Some s
-      | _ -> None
-    with _ -> None
-  in
-  match metadata_name with
-  | Some name -> name
-  | None ->
-      (try
-         json
-         |> member "status"
-         |> member "content"
-         |> member "git"
-         |> member "branch"
-         |> to_string
-       with _ -> "unknown")
-
-(** Parse gitpod environment list JSON *)
-let parse_gitpod_envs json_str =
-  try
-    let json = Yojson.Basic.from_string json_str in
-    let open Yojson.Basic.Util in
-    json
-    |> to_list
-    |> List.map (fun env ->
-           {
-             id = env |> member "id" |> to_string;
-             checkout_location = extract_checkout_location env;
-             nickname = extract_nickname env;
-           })
-  with _ -> []
-
-(** List running Gitpod environments *)
-let list_gitpod_environments () =
-  let output =
-    run_command gitpod_cli [ "environment"; "list"; "-o"; "json"; "--running-only"; "2>/dev/null" ]
-  in
-  parse_gitpod_envs output
-
-(** Convert a gitpod environment to an ssh_connection JSON object *)
-let env_to_ssh_connection env =
+(** Convert an Ona environment to an ssh_connection JSON object *)
+let env_to_ssh_connection (env : Ona.env) =
   let host = Printf.sprintf "%s.gitpod.environment" env.id in
-  let path = Printf.sprintf "/workspace/%s" env.checkout_location in
+  let checkout_location = Option.value env.checkout_location ~default:"workspace" in
+  let path = Printf.sprintf "/workspace/%s" checkout_location in
   `Assoc
     [
       ("host", `String host);
@@ -99,8 +16,8 @@ let env_to_ssh_connection env =
       ("projects", `List [ `Assoc [ ("paths", `List [ `String path ]) ] ]);
     ]
 
-(** Check if an ssh_connection is a gitpod connection *)
-let is_gitpod_connection json =
+(** Check if an ssh_connection is an Ona/Gitpod connection *)
+let is_ona_connection json =
   let open Yojson.Basic.Util in
   try
     let host = json |> member "host" |> to_string in
@@ -189,8 +106,8 @@ let strip_comments str =
   in
   String.concat "\n" stripped
 
-(** Parse existing ssh_connections to find non-gitpod ones *)
-let get_non_gitpod_connections content =
+(** Parse existing ssh_connections to find non-Ona ones *)
+let get_non_ona_connections content =
   match find_ssh_connections_array content with
   | None -> []
   | Some (start_pos, end_pos) ->
@@ -201,7 +118,7 @@ let get_non_gitpod_connections content =
       (try
          let json = Yojson.Basic.from_string stripped in
          let open Yojson.Basic.Util in
-         json |> to_list |> List.filter (fun c -> not (is_gitpod_connection c))
+         json |> to_list |> List.filter (fun c -> not (is_ona_connection c))
        with _ -> [])
 
 (** Format the ssh_connections array with proper indentation *)
@@ -219,16 +136,16 @@ let format_ssh_connections connections =
   String.concat "\n" indented
 
 (** Update the Zed config with new ssh_connections.
-    Returns Some (gitpod_count, non_gitpod_count) on success, None on failure. *)
-let update_config gitpod_envs =
+    Returns Some (ona_count, non_ona_count) on success, None on failure. *)
+let update_config ona_envs =
   match read_config () with
   | None ->
       Printf.eprintf "Zed config not found at %s\n%!" zed_config_path;
       None
   | Some content ->
-      let non_gitpod = get_non_gitpod_connections content in
-      let gitpod_connections = List.map env_to_ssh_connection gitpod_envs in
-      let all_connections = non_gitpod @ gitpod_connections in
+      let non_ona = get_non_ona_connections content in
+      let ona_connections = List.map env_to_ssh_connection ona_envs in
+      let all_connections = non_ona @ ona_connections in
       (match find_ssh_connections_array content with
       | None ->
           Printf.eprintf "No ssh_connections found in config\n%!";
@@ -242,27 +159,28 @@ let update_config gitpod_envs =
           in
           let new_content = before ^ new_array ^ after in
           write_config new_content;
-          Some (List.length gitpod_connections, List.length non_gitpod))
+          Some (List.length ona_connections, List.length non_ona))
 
 (** Main sync function *)
 let sync () =
-  Printf.printf "Syncing Gitpod environments...\n%!";
-  let envs = list_gitpod_environments () in
+  Printf.printf "Syncing Ona environments...\n%!";
+  let envs = Ona.list_environments ~include_checkout_location:true () in
   Printf.printf "Found %d running environment(s)\n%!" (List.length envs);
   List.iter
-    (fun env ->
-      Printf.printf "  - %s [%s] (%s)\n%!" env.id env.nickname env.checkout_location)
+    (fun (env : Ona.env) ->
+      let checkout = Option.value env.checkout_location ~default:"workspace" in
+      Printf.printf "  - %s [%s] (%s)\n%!" env.id env.nickname checkout)
     envs;
   match update_config envs with
-  | Some (gitpod_count, non_gitpod_count) ->
-      Printf.printf "Updated Zed config (%d gitpod, %d non-gitpod connections)\n%!"
-        gitpod_count non_gitpod_count
+  | Some (ona_count, non_ona_count) ->
+      Printf.printf "Updated Zed config (%d Ona, %d non-Ona connections)\n%!"
+        ona_count non_ona_count
   | None ->
       Printf.printf "Failed to update Zed config\n%!"
 
 (** Main entry point *)
 let () =
-  Printf.printf "zed-ona-sync starting...\n%!";
+  Printf.printf "ona-sync-zed-ssh-connections starting...\n%!";
   Printf.printf "Config path: %s\n%!" zed_config_path;
   while true do
     sync ();

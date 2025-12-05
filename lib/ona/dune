@@ -1,0 +1,4 @@
+(library
+ (name ona)
+ (public_name ona)
+ (libraries yojson unix))

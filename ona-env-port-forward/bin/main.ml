@@ -1,15 +1,8 @@
-(** ona-env-port-forward: Port forwarding for Gitpod environments with auto-reconnect *)
-
-let gitpod_cli = "/usr/local/bin/gitpod"
+(** ona-env-port-forward: Port forwarding for Ona environments with auto-reconnect *)
 
 (* ============================================================================
    Types
    ============================================================================ *)
-
-type gitpod_env = {
-  id : string;
-  nickname : string;
-}
 
 type connection_record = {
   start_time : float;
@@ -19,7 +12,6 @@ type connection_record = {
 type session_stats = {
   mutable connection_count : int;
   mutable connections : connection_record list;
-  session_start : float;
 }
 
 (* ============================================================================
@@ -52,73 +44,6 @@ let log msg =
   Printf.printf "[%s] %s\n%!" (timestamp ()) msg
 
 (* ============================================================================
-   Command execution
-   ============================================================================ *)
-
-(** Run a command and return its stdout *)
-let run_command cmd args =
-  let cmd_str = String.concat " " (cmd :: args) in
-  let ic = Unix.open_process_in cmd_str in
-  let buf = Buffer.create 256 in
-  (try
-     while true do
-       Buffer.add_channel buf ic 1
-     done
-   with End_of_file -> ());
-  let _ = Unix.close_process_in ic in
-  Buffer.contents buf
-
-(* ============================================================================
-   Gitpod environment listing
-   ============================================================================ *)
-
-(** Extract nickname from gitpod environment JSON.
-    Uses metadata.name if set, otherwise falls back to status.content.git.branch *)
-let extract_nickname json =
-  let open Yojson.Basic.Util in
-  let metadata_name =
-    try
-      match json |> member "metadata" |> member "name" with
-      | `Null -> None
-      | `String "" -> None
-      | `String s -> Some s
-      | _ -> None
-    with _ -> None
-  in
-  match metadata_name with
-  | Some name -> name
-  | None ->
-      (try
-         json
-         |> member "status"
-         |> member "content"
-         |> member "git"
-         |> member "branch"
-         |> to_string
-       with _ -> "unknown")
-
-(** Parse gitpod environment list JSON *)
-let parse_gitpod_envs json_str =
-  try
-    let json = Yojson.Basic.from_string json_str in
-    let open Yojson.Basic.Util in
-    json
-    |> to_list
-    |> List.map (fun env ->
-           {
-             id = env |> member "id" |> to_string;
-             nickname = extract_nickname env;
-           })
-  with _ -> []
-
-(** List running Gitpod environments *)
-let list_gitpod_environments () =
-  let output =
-    run_command gitpod_cli [ "environment"; "list"; "-o"; "json"; "--running-only"; "2>/dev/null" ]
-  in
-  parse_gitpod_envs output
-
-(* ============================================================================
    Interactive selection using MintTea
    ============================================================================ *)
 
@@ -126,9 +51,9 @@ module Selection_tui = struct
   open Minttea
 
   type model = {
-    environments : gitpod_env list;
+    environments : Ona.env list;
     cursor : int;
-    selected : gitpod_env option;
+    selected : Ona.env option;
   }
 
   let initial_model environments =
@@ -168,10 +93,10 @@ module Selection_tui = struct
 
   let view model =
     let open Spices in
-    let header = "Select a Gitpod environment:\n\n" in
+    let header = "Select an Ona environment:\n\n" in
     let items =
       List.mapi
-        (fun i env ->
+        (fun i (env : Ona.env) ->
           let cursor_char = if i = model.cursor then "▸ " else "  " in
           let styled =
             if i = model.cursor then
@@ -206,7 +131,6 @@ end
 let stats = {
   connection_count = 0;
   connections = [];
-  session_start = Unix.time ();
 }
 
 let current_connection : connection_record option ref = ref None
@@ -243,7 +167,7 @@ let setup_signal_handler () =
          exit 0))
 
 (** Run SSH port forwarding with auto-reconnect *)
-let run_port_forward env port =
+let run_port_forward (env : Ona.env) port =
   let host = Printf.sprintf "%s.gitpod.environment" env.id in
   let port_str = string_of_int port in
   let local_forward = Printf.sprintf "0.0.0.0:%s:localhost:%s" port_str port_str in
@@ -302,7 +226,7 @@ let run_port_forward env port =
 
 let usage () =
   Printf.printf "Usage: ona-env-port-forward [port]\n\n";
-  Printf.printf "Port forwards to a selected Gitpod environment with auto-reconnect.\n\n";
+  Printf.printf "Port forwards to a selected Ona environment with auto-reconnect.\n\n";
   Printf.printf "Arguments:\n";
   Printf.printf "  port    Local port to forward (default: 5173)\n\n";
   Printf.printf "Options:\n";
@@ -325,10 +249,10 @@ let () =
   in
 
   (* List environments *)
-  let envs = list_gitpod_environments () in
+  let envs = Ona.list_environments () in
 
   if List.length envs = 0 then (
-    Printf.printf "No running Gitpod environments found.\n%!";
+    Printf.printf "No running Ona environments found.\n%!";
     exit 0
   );
 

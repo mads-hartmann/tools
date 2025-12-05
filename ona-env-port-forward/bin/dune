@@ -1,4 +1,5 @@
 (executable
  (name main)
  (public_name ona-env-port-forward)
- (libraries yojson unix minttea spices))
+ (package ona-env-port-forward)
+ (libraries ona yojson unix minttea spices))
