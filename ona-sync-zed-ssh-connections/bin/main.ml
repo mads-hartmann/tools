@@ -1,6 +1,8 @@
 (** ona-sync-zed-ssh-connections: Syncs Ona environments to Zed's ssh_connections config *)
 
-let zed_config_path =
+open Cmdliner
+
+let default_zed_config_path =
   Filename.concat (Sys.getenv "HOME") ".config/zed/settings.json"
 
 (** Convert an Ona environment to an ssh_connection JSON object *)
@@ -75,9 +77,9 @@ let find_ssh_connections_array content =
               | Some bracket_end -> Some (bracket_start, bracket_end))))
 
 (** Read the Zed config file *)
-let read_config () =
-  if Sys.file_exists zed_config_path then (
-    let ic = open_in zed_config_path in
+let read_config config_path =
+  if Sys.file_exists config_path then (
+    let ic = open_in config_path in
     let n = in_channel_length ic in
     let s = really_input_string ic n in
     close_in ic;
@@ -85,8 +87,8 @@ let read_config () =
   else None
 
 (** Write the Zed config file *)
-let write_config content =
-  let oc = open_out zed_config_path in
+let write_config config_path content =
+  let oc = open_out config_path in
   output_string oc content;
   close_out oc
 
@@ -137,10 +139,10 @@ let format_ssh_connections connections =
 
 (** Update the Zed config with new ssh_connections.
     Returns Some (ona_count, non_ona_count) on success, None on failure. *)
-let update_config ona_envs =
-  match read_config () with
+let update_config config_path ona_envs =
+  match read_config config_path with
   | None ->
-      Printf.eprintf "Zed config not found at %s\n%!" zed_config_path;
+      Printf.eprintf "Zed config not found at %s\n%!" config_path;
       None
   | Some content ->
       let non_ona = get_non_ona_connections content in
@@ -158,11 +160,11 @@ let update_config ona_envs =
               (String.length content - end_pos - 1)
           in
           let new_content = before ^ new_array ^ after in
-          write_config new_content;
+          write_config config_path new_content;
           Some (List.length ona_connections, List.length non_ona))
 
 (** Main sync function *)
-let sync () =
+let sync config_path =
   Printf.printf "Syncing Ona environments...\n%!";
   let envs = Ona.list_environments ~include_checkout_location:true () in
   Printf.printf "Found %d running environment(s)\n%!" (List.length envs);
@@ -171,7 +173,7 @@ let sync () =
       let checkout = Option.value env.checkout_location ~default:"workspace" in
       Printf.printf "  - %s [%s] (%s)\n%!" env.id env.nickname checkout)
     envs;
-  match update_config envs with
+  match update_config config_path envs with
   | Some (ona_count, non_ona_count) ->
       Printf.printf "Updated Zed config (%d Ona, %d non-Ona connections)\n%!"
         ona_count non_ona_count
@@ -179,11 +181,47 @@ let sync () =
       Printf.printf "Failed to update Zed config\n%!"
 
 (** Main entry point *)
-let () =
+let run config_path interval once =
   Printf.printf "ona-sync-zed-ssh-connections starting...\n%!";
-  Printf.printf "Config path: %s\n%!" zed_config_path;
-  while true do
-    sync ();
-    Printf.printf "Sleeping for 30 seconds...\n%!";
-    Unix.sleep 30
-  done
+  Printf.printf "Config path: %s\n%!" config_path;
+  if once then
+    sync config_path
+  else begin
+    while true do
+      sync config_path;
+      Printf.printf "Sleeping for %d seconds...\n%!" interval;
+      Unix.sleep interval
+    done
+  end
+
+(* Command line interface *)
+let config_arg =
+  let doc = "Path to Zed settings.json file." in
+  Arg.(value & opt string default_zed_config_path & info ["c"; "config"] ~docv:"PATH" ~doc)
+
+let interval_arg =
+  let doc = "Sync interval in seconds." in
+  Arg.(value & opt int 30 & info ["i"; "interval"] ~docv:"SECONDS" ~doc)
+
+let once_arg =
+  let doc = "Run once and exit instead of continuously syncing." in
+  Arg.(value & flag & info ["once"] ~doc)
+
+let cmd =
+  let doc = "Sync Ona environments to Zed's ssh_connections config" in
+  let man = [
+    `S Manpage.s_description;
+    `P "Watches for running Ona environments and keeps Zed's ssh_connections \
+        configuration in sync. Non-Ona SSH connections are preserved.";
+    `S Manpage.s_examples;
+    `P "Run continuously with default settings:";
+    `Pre "  ona-sync-zed-ssh-connections";
+    `P "Sync once and exit:";
+    `Pre "  ona-sync-zed-ssh-connections --once";
+    `P "Sync every 60 seconds:";
+    `Pre "  ona-sync-zed-ssh-connections -i 60";
+  ] in
+  let info = Cmd.info "ona-sync-zed-ssh-connections" ~version:"1.0.0" ~doc ~man in
+  Cmd.v info Term.(const run $ config_arg $ interval_arg $ once_arg)
+
+let () = exit (Cmd.eval cmd)

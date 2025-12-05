@@ -1,5 +1,7 @@
 (** ona-env-port-forward: Port forwarding for Ona environments with auto-reconnect *)
 
+open Cmdliner
+
 (* ============================================================================
    Types
    ============================================================================ *)
@@ -224,30 +226,7 @@ let run_port_forward (env : Ona.env) port =
    Main entry point
    ============================================================================ *)
 
-let usage () =
-  Printf.printf "Usage: ona-env-port-forward [port]\n\n";
-  Printf.printf "Port forwards to a selected Ona environment with auto-reconnect.\n\n";
-  Printf.printf "Arguments:\n";
-  Printf.printf "  port    Local port to forward (default: 5173)\n\n";
-  Printf.printf "Options:\n";
-  Printf.printf "  -h, --help    Show this help message\n%!";
-  exit 0
-
-let () =
-  (* Parse command line arguments *)
-  let port =
-    if Array.length Sys.argv > 1 then
-      let arg = Sys.argv.(1) in
-      if arg = "-h" || arg = "--help" then usage ()
-      else
-        try int_of_string arg
-        with _ ->
-          Printf.eprintf "Invalid port: %s\n%!" arg;
-          Printf.eprintf "Use --help for usage information.\n%!";
-          exit 1
-    else 5173
-  in
-
+let run port =
   (* List environments *)
   let envs = Ona.list_environments () in
 
@@ -263,3 +242,25 @@ let () =
       exit 0
   | Some env ->
       run_port_forward env port
+
+(* Command line interface *)
+let port_arg =
+  let doc = "Local port to forward." in
+  Arg.(value & opt int 5173 & info ["p"; "port"] ~docv:"PORT" ~doc)
+
+let cmd =
+  let doc = "Port forward to an Ona environment with auto-reconnect" in
+  let man = [
+    `S Manpage.s_description;
+    `P "Connects to a selected Ona environment via SSH and forwards a local port. \
+        Automatically reconnects if the connection drops.";
+    `S Manpage.s_examples;
+    `P "Forward the default port (5173):";
+    `Pre "  ona-env-port-forward";
+    `P "Forward a specific port:";
+    `Pre "  ona-env-port-forward -p 3000";
+  ] in
+  let info = Cmd.info "ona-env-port-forward" ~version:"1.0.0" ~doc ~man in
+  Cmd.v info Term.(const run $ port_arg)
+
+let () = exit (Cmd.eval cmd)

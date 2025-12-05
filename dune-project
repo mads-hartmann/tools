@@ -16,6 +16,7 @@
  (depends
   (ocaml (>= 5.1))
   ona
+  (cmdliner (>= 1.2))
   (yojson (>= 2.0))
   (minttea (>= 0.0.2))
   (spices (>= 0.0.2))))
@@ -26,4 +27,5 @@
  (depends
   (ocaml (>= 5.0))
   ona
+  (cmdliner (>= 1.2))
   (yojson (>= 2.0))))

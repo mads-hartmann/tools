@@ -2,4 +2,4 @@
  (name main)
  (public_name ona-sync-zed-ssh-connections)
  (package ona-sync-zed-ssh-connections)
- (libraries ona yojson unix))
+ (libraries ona cmdliner yojson unix))

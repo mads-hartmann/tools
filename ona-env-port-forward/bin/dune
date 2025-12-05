@@ -2,4 +2,4 @@
  (name main)
  (public_name ona-env-port-forward)
  (package ona-env-port-forward)
- (libraries ona yojson unix minttea spices))
+ (libraries ona cmdliner yojson unix minttea spices))
