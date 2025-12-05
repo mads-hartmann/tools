@@ -1,0 +1,13 @@
+(lang dune 3.0)
+
+(name ona-sync-zed-ssh-connections)
+
+(generate_opam_files true)
+
+(package
+ (name ona-sync-zed-ssh-connections)
+ (synopsis "A tool for syncing Zed ssh_connections settings with Ona environments")
+ (depends
+  (ocaml (>= 5.0))
+  (yojson (>= 2.0))))
+
