@@ -29,3 +29,10 @@
   ona
   (cmdliner (>= 1.2))
   (yojson (>= 2.0))))
+
+(package
+ (name ona-log-msg-parser)
+ (synopsis "Extract timestamp and msg from ona-swe-agent-service logs")
+ (depends
+  (ocaml (>= 5.0))
+  (cmdliner (>= 1.2))))

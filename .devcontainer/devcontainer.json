@@ -1,0 +1,7 @@
+{
+	"name": "Ona",
+	"build": {
+		"context": ".",
+		"dockerfile": "Dockerfile"
+	}
+}
