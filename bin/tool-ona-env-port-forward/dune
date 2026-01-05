@@ -1,5 +1,5 @@
 (executable
  (name main)
- (public_name ona-env-port-forward)
- (package ona-env-port-forward)
+ (public_name tool-ona-env-port-forward)
+ (package tool-ona-env-port-forward)
  (libraries ona cmdliner yojson unix minttea spices))
