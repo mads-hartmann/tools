@@ -3,3 +3,7 @@
  (public_name ona-log-msg-parser)
  (package ona-log-msg-parser)
  (libraries cmdliner str))
+
+(test
+ (name test_parser)
+ (libraries str))

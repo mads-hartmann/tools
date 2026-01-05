@@ -1,20 +1,25 @@
-(** ona-log-msg-parser: Extract timestamp and msg from ona-swe-agent-service.log
-
-    Handles both JSON log lines (with "msg" field) and plain INFO lines.
-    The log format is systemd journal style with optional embedded JSON. *)
-
 open Cmdliner
 
-(** Extract timestamp from beginning of line (e.g., "Dec 05 10:35:00") *)
-let extract_timestamp line =
-  let month_pattern = "\\(Jan\\|Feb\\|Mar\\|Apr\\|May\\|Jun\\|Jul\\|Aug\\|Sep\\|Oct\\|Nov\\|Dec\\)" in
-  let timestamp_re = Str.regexp (month_pattern ^ " [0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9]") in
-  if Str.string_match timestamp_re line 0 then
-    Some (Str.matched_string line)
-  else
-    None
+let months = ["Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec"]
 
-(** Extract "msg" value from JSON in line *)
+let is_digit c = c >= '0' && c <= '9'
+
+(* Timestamp is always first 15 chars: "Mon DD HH:MM:SS" *)
+let extract_timestamp line =
+  if String.length line < 15 then None
+  else
+    let ts = String.sub line 0 15 in
+    let month = String.sub ts 0 3 in
+    if List.mem month months
+       && ts.[3] = ' '
+       && is_digit ts.[4] && is_digit ts.[5]
+       && ts.[6] = ' '
+       && is_digit ts.[7] && is_digit ts.[8] && ts.[9] = ':'
+       && is_digit ts.[10] && is_digit ts.[11] && ts.[12] = ':'
+       && is_digit ts.[13] && is_digit ts.[14]
+    then Some ts
+    else None
+
 let extract_json_msg line =
   let msg_re = Str.regexp "\"msg\"[ \t]*:[ \t]*\"\\([^\"]+\\)\"" in
   try
@@ -22,8 +27,6 @@ let extract_json_msg line =
     Some (Str.matched_group 1 line)
   with Not_found -> None
 
-(** Extract INFO message from non-JSON lines
-    Pattern: [id:...] [...] INFO <message> *)
 let extract_info_msg line =
   let info_re = Str.regexp "\\[id:[^]]+\\] \\[[^]]+\\] INFO \\(.*\\)" in
   try
@@ -31,22 +34,16 @@ let extract_info_msg line =
     Some (Str.matched_group 1 line)
   with Not_found -> None
 
-(** Process a single line and return formatted output if valid *)
 let process_line line =
   match extract_timestamp line with
   | None -> None
   | Some timestamp ->
-      (* Try JSON msg first, then INFO pattern *)
-      let msg =
-        match extract_json_msg line with
+      let msg = match extract_json_msg line with
         | Some m -> Some m
         | None -> extract_info_msg line
       in
-      match msg with
-      | Some m -> Some (Printf.sprintf "%s | %s" timestamp m)
-      | None -> None
+      Option.map (Printf.sprintf "%s | %s" timestamp) msg
 
-(** Process input channel line by line *)
 let process_channel ic =
   try
     while true do
@@ -57,7 +54,6 @@ let process_channel ic =
     done
   with End_of_file -> ()
 
-(** Main entry point *)
 let run file =
   match file with
   | Some path ->
@@ -66,7 +62,6 @@ let run file =
   | None ->
       process_channel stdin
 
-(* Command line interface *)
 let file_arg =
   let doc = "Log file to parse. Reads from stdin if not provided." in
   Arg.(value & pos 0 (some string) None & info [] ~docv:"FILE" ~doc)
