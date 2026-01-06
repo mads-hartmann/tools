@@ -15,7 +15,9 @@ jobs:
           ocaml-compiler: "5.2"
 
       - name: Install dependencies
-        run: opam install ./opam --deps-only --with-test -y
+        run: |
+          opam pin riot 0.0.9 -y --no-action
+          opam install ./opam --deps-only --with-test -y
 
       - name: Build
         run: opam exec -- dune build
