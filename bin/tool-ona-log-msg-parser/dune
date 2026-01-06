@@ -1,7 +1,7 @@
 (executable
  (name main)
- (public_name ona-log-msg-parser)
- (package ona-log-msg-parser)
+ (public_name tool-ona-log-msg-parser)
+ (package tool-ona-log-msg-parser)
  (libraries cmdliner str))
 
 (test

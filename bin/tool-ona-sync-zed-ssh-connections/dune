@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (public_name tool-ona-sync-zed-ssh-connections)
+ (package tool-ona-sync-zed-ssh-connections)
+ (libraries ona cmdliner yojson unix))

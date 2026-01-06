@@ -11,7 +11,7 @@
   (yojson (>= 2.0))))
 
 (package
- (name ona-env-port-forward)
+ (name tool-ona-env-port-forward)
  (synopsis "Port forwarding tool for Ona environments with auto-reconnect")
  (depends
   (ocaml (>= 5.1))
@@ -22,7 +22,7 @@
   (spices (>= 0.0.2))))
 
 (package
- (name ona-sync-zed-ssh-connections)
+ (name tool-ona-sync-zed-ssh-connections)
  (synopsis "A tool for syncing Zed ssh_connections settings with Ona environments")
  (depends
   (ocaml (>= 5.0))
@@ -31,7 +31,7 @@
   (yojson (>= 2.0))))
 
 (package
- (name ona-log-msg-parser)
+ (name tool-ona-log-msg-parser)
  (synopsis "Extract timestamp and msg from ona-swe-agent-service logs")
  (depends
   (ocaml (>= 5.0))
