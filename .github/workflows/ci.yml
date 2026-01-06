@@ -13,14 +13,13 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: "5.2"
-          opam-repositories: |
-            pin: git+https://github.com/ocaml/opam-repository#master
 
       - name: Install dependencies
-        run: opam install ./opam --deps-only --with-test -y
+        run: |
+          opam install ./opam/ona.opam ./opam/tool-ona-sync-zed-ssh-connections.opam ./opam/tool-ona-log-msg-parser.opam --deps-only --with-test -y
 
       - name: Build
-        run: opam exec -- dune build
+        run: opam exec -- dune build -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser
 
       - name: Test
-        run: opam exec -- dune runtest
+        run: opam exec -- dune runtest -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser
