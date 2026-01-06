@@ -13,12 +13,12 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: "5.2"
-          opam-pin: |
-            riot.dev git+https://github.com/riot-ml/riot.git
-            minttea.dev git+https://github.com/leostera/minttea.git
 
       - name: Install dependencies
-        run: opam install ./opam --deps-only --with-test -y
+        run: |
+          opam pin add riot.dev git+https://github.com/riot-ml/riot.git -n -y
+          opam pin add minttea.dev git+https://github.com/leostera/minttea.git -n -y
+          opam install ./opam --deps-only --with-test -y
 
       - name: Build
         run: opam exec -- dune build
