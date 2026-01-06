@@ -16,7 +16,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          opam pin riot 0.0.9 -y --no-action
+          opam pin minttea https://github.com/leostera/minttea.git -y --no-action
           opam install ./opam --deps-only --with-test -y
 
       - name: Build
