@@ -213,12 +213,20 @@ let run_port_forward (env : Ona.env) port =
       | Unix.WSTOPPED sig_num -> Printf.sprintf "stopped by signal %d" sig_num
     in
 
-    log (Printf.sprintf "Disconnected after %s (%s, reconnecting... attempt #%d)"
-           (format_duration duration) exit_info (stats.connection_count + 1));
+    log (Printf.sprintf "Disconnected after %s (%s)"
+           (format_duration duration) exit_info);
 
-    (* Brief delay before reconnecting *)
-    Unix.sleep 2;
-    loop ()
+    (* Check if environment is still running before reconnecting *)
+    match Ona.get_environment env.id with
+    | None ->
+        log "Environment stopped, terminating";
+        print_summary ();
+        exit 1
+    | Some _ ->
+        log (Printf.sprintf "Reconnecting... attempt #%d" (stats.connection_count + 1));
+        (* Brief delay before reconnecting *)
+        Unix.sleep 2;
+        loop ()
   in
   loop ()
 
