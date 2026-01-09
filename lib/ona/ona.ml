@@ -88,3 +88,29 @@ let list_environments ?(include_checkout_location = false) () =
     run_command cli_path [ "environment"; "list"; "-o"; "json"; "--running-only"; "2>/dev/null" ]
   in
   parse_envs ~include_checkout_location output
+
+(** Get a single environment by ID. Returns Some env if it exists and is running, None otherwise. *)
+let get_environment id =
+  let output =
+    run_command cli_path [ "environment"; "get"; id; "-o"; "json"; "2>/dev/null" ]
+  in
+  try
+    let json = Yojson.Basic.from_string output in
+    let open Yojson.Basic.Util in
+    (* The CLI returns a list even for a single environment *)
+    match json |> to_list with
+    | [] -> None
+    | env_json :: _ ->
+        let phase =
+          try env_json |> member "status" |> member "phase" |> to_string
+          with _ -> ""
+        in
+        if phase = "ENVIRONMENT_PHASE_RUNNING" then
+          Some {
+            id = env_json |> member "id" |> to_string;
+            nickname = extract_nickname env_json;
+            checkout_location = None;
+          }
+        else
+          None
+  with _ -> None
