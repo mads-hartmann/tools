@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5.2"
+
+      - name: Install dependencies
+        run: |
+          opam install ./opam/ona.opam ./opam/tool-ona-sync-zed-ssh-connections.opam ./opam/tool-ona-log-msg-parser.opam --deps-only --with-test -y
+
+      - name: Build
+        run: opam exec -- dune build -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser
+
+      - name: Test
+        run: opam exec -- dune runtest -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser
