@@ -235,8 +235,13 @@ let run_port_forward (env : Ona.env) port =
    ============================================================================ *)
 
 let run port =
-  (* List environments *)
-  let envs = Ona.list_environments () in
+  (* List environments with error handling *)
+  let envs, error = Ona.list_environments_result () in
+
+  (match error with
+   | Some err ->
+       Printf.eprintf "Error: %s\n%!" (Ona.error_to_string err)
+   | None -> ());
 
   if List.length envs = 0 then (
     Printf.printf "No running Ona environments found.\n%!";
