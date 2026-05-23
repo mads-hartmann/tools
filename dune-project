@@ -36,3 +36,13 @@
  (depends
   (ocaml (>= 5.0))
   (cmdliner (>= 1.2))))
+
+(package
+ (name tool-md-serve)
+ (synopsis "Serve a folder of Markdown files over HTTP")
+ (depends
+  (ocaml (>= 5.0))
+  (cmdliner (>= 1.2))
+  (cohttp-lwt-unix (>= 5.0))
+  (lwt (>= 5.0))
+  (cmarkit (>= 0.3))))
