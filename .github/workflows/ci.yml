@@ -16,10 +16,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          opam install ./opam/ona.opam ./opam/tool-ona-sync-zed-ssh-connections.opam ./opam/tool-ona-log-msg-parser.opam --deps-only --with-test -y
+          opam install ./opam/ona.opam ./opam/tool-ona-sync-zed-ssh-connections.opam ./opam/tool-ona-log-msg-parser.opam ./opam/tool-md-serve.opam --deps-only --with-test -y
 
       - name: Build
-        run: opam exec -- dune build -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser
+        run: opam exec -- dune build -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser,tool-md-serve
 
       - name: Test
-        run: opam exec -- dune runtest -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser
+        run: opam exec -- dune runtest -p ona,tool-ona-sync-zed-ssh-connections,tool-ona-log-msg-parser,tool-md-serve

@@ -1,0 +1,25 @@
+(library
+ (name lib)
+ (wrapped false)
+ (modules lib)
+ (libraries cmarkit))
+
+(executable
+ (name main)
+ (public_name tool-md-serve)
+ (package tool-md-serve)
+ (modules main)
+ (libraries lib cmdliner cohttp-lwt-unix lwt cmarkit))
+
+(executable
+ (name test_server)
+ (modules test_server)
+ (libraries lib cmarkit))
+
+(rule
+ (alias runtest)
+ (deps
+  (source_tree fixtures)
+  test_server.exe)
+ (action
+  (run %{exe:test_server.exe} %{workspace_root}/bin/tool-md-serve/fixtures)))
