@@ -1,35 +1,28 @@
-# ona-env-port-forward
+# tool-ona-env-port-forward
 
-Port forwarding tool for Ona environments with auto-reconnect and connection tracking.
+Port forwarding for Ona environments with auto-reconnect and connection tracking.
 
-## Usag
+Presents an interactive TUI to select a running environment, then SSH-forwards
+the chosen port with automatic reconnection on disconnect. Prints a session
+summary (connection count, total uptime) on exit.
 
-```bash
-ona-env-port-forward [port]   # default: 5173
+> **Note:** Only available on macOS. The `minttea` TUI dependency does not
+> build on Linux.
+
+## Usage
+
+```
+tool-ona-env-port-forward [-p PORT]
 ```
 
-## Development
+- `-p`, `--port` — port to forward (default: 5173)
 
-Install dependencies:
+## Examples
 
-```bash
-opam install . --deps-only
-```
+```sh
+# Forward the default port (5173)
+tool-ona-env-port-forward
 
-Build the project:
-
-```bash
-dune build
-```
-
-Build & run
-
-```bash
-dune exec ona-env-port-forward
-```
-
-Installing into `~/.opam/default/bin`
-
-```bash
-dune install
+# Forward a specific port
+tool-ona-env-port-forward -p 3000
 ```

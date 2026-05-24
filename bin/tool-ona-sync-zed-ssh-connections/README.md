@@ -1,29 +1,32 @@
-# ona-sync-zed-ssh-connections
+# tool-ona-sync-zed-ssh-connections
 
-A tool for syncing Zed ssh_connections settings with Ona environments
+Keeps Zed's `ssh_connections` config in sync with running Ona environments.
+Non-Ona SSH connections in the config are preserved.
 
-## Development
+## Usage
 
-Install dependencies:
-
-```bash
-opam install . --deps-only
+```
+tool-ona-sync-zed-ssh-connections [-c PATH] [-i SECONDS] [--once]
 ```
 
-Build the project:
+- `-c`, `--config` — path to `settings.json` (default: `~/.config/zed/settings.json`)
+- `-i`, `--interval` — sync interval in seconds when running continuously (default: 30)
+- `--once` — sync once and exit instead of looping
 
-```bash
-dune build
+## Examples
+
+```sh
+# Run continuously, syncing every 30 seconds
+tool-ona-sync-zed-ssh-connections
+
+# Sync once and exit
+tool-ona-sync-zed-ssh-connections --once
+
+# Sync every 60 seconds
+tool-ona-sync-zed-ssh-connections -i 60
 ```
 
-Build & run
+## Raycast
 
-```bash
-dune exec zed-ona-sync
-```
-
-Installing into `~/.opam/default/bin`
-
-```bash
-dune install
-```
+A Raycast script command is available at
+[`raycast-script-commands/ona-sync-zed-ssh-connections.sh`](../../raycast-script-commands/ona-sync-zed-ssh-connections.sh).
