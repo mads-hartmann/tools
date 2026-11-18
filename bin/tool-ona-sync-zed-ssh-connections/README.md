@@ -25,8 +25,3 @@ tool-ona-sync-zed-ssh-connections --once
 # Sync every 60 seconds
 tool-ona-sync-zed-ssh-connections -i 60
 ```
-
-## Raycast
-
-A Raycast script command is available at
-[`raycast-script-commands/ona-sync-zed-ssh-connections.sh`](../../raycast-script-commands/ona-sync-zed-ssh-connections.sh).
